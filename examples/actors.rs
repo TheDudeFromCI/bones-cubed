@@ -1,8 +1,6 @@
 use std::f32::consts::FRAC_PI_4;
 
 use bevy::prelude::*;
-use bevy_egui::EguiPlugin;
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bones_cubed::BonesCubedPlugin;
 use bones_cubed::actor::anim::ActorAnimation;
 use bones_cubed::actor::scene::ActorInstance;
@@ -10,8 +8,6 @@ use bones_cubed::actor::scene::ActorInstance;
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins(EguiPlugin::default())
-        .add_plugins(WorldInspectorPlugin::new())
         .add_plugins(BonesCubedPlugin)
         .add_systems(Startup, setup)
         .add_systems(Update, spawn_random)
