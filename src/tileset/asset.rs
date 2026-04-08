@@ -50,6 +50,17 @@ impl<M: TilesetMaterial> AssetLoader for TilesetLoader<M> {
         _settings: &Self::Settings,
         ctx: &mut LoadContext<'_>,
     ) -> Result<Self::Asset, Self::Error> {
+        match ctx.path().get_full_extension() {
+            Some(full_ext) if full_ext == M::file_extension() => {}
+            Some(full_ext) => {
+                return Err(TilesetLoaderError::WrongMaterial {
+                    expected: M::file_extension().to_string(),
+                    found: full_ext.to_string(),
+                });
+            }
+            None => {}
+        }
+
         let mut properties = utils::asset::parse_properties(reader).await?;
 
         let name = properties
@@ -65,12 +76,12 @@ impl<M: TilesetMaterial> AssetLoader for TilesetLoader<M> {
             Some(ref v) if v == "transparent" => AlphaMode::Blend,
             None => AlphaMode::Opaque,
             Some(v) => {
-                return Err(TilesetLoaderError::InvalidBlendMode(v));
+                return Err(TilesetLoaderError::InvalidAlphaMode(v));
             }
         };
 
-        if properties.len() < 2 {
-            return Err(TilesetLoaderError::NotEnoughTiles(properties.len()));
+        if properties.len() < 1 {
+            return Err(TilesetLoaderError::EmptyTileset);
         }
 
         let mut size: Option<u32> = None;
@@ -93,7 +104,15 @@ impl<M: TilesetMaterial> AssetLoader for TilesetLoader<M> {
             generate_mip_maps(tile_image, &mut image_data)?;
         }
 
-        let texture_array = image(image_data, size.unwrap(), tiles.len() as u32);
+        if tiles.len() == 1 {
+            // Bevy texture arrays require at least 2 layers, so if there is
+            // only 1 tile, we duplicate it to create a 2-layer texture array.
+            let image_data_clone = image_data.clone();
+            image_data.extend_from_slice(image_data_clone.as_slice());
+        }
+
+        let layer_count = (tiles.len() as u32).max(2);
+        let texture_array = image(image_data, size.unwrap(), layer_count);
         let img_handle = ctx.add_labeled_asset("texture".to_owned(), texture_array);
 
         let material = M::init(TilesetMaterialSettings {
@@ -105,11 +124,12 @@ impl<M: TilesetMaterial> AssetLoader for TilesetLoader<M> {
         let tileset = Tileset::<M>::new(name, material_handle, tiles);
 
         info!(
-            "Loaded {} from {} with {} tiles and alpha mode {:?}",
+            "Loaded {} from {} with {} tiles and alpha mode {:?} (material: {})",
             tileset.name(),
             ctx.path(),
             tileset.tile_names().len(),
-            alpha_mode
+            alpha_mode,
+            M::file_extension(),
         );
 
         Ok(tileset)
@@ -256,9 +276,9 @@ pub enum TilesetLoaderError {
     #[error("Invalid tileset file: {0}")]
     ParserError(#[from] utils::asset::PropertyParserError),
 
-    /// Invalid blend mode.
-    #[error("Invalid blend mode: {0}")]
-    InvalidBlendMode(String),
+    /// Invalid alpha mode.
+    #[error("Invalid alpha mode: {0}")]
+    InvalidAlphaMode(String),
 
     /// Image file not found.
     #[error("Image file not found: {0}")]
@@ -272,9 +292,18 @@ pub enum TilesetLoaderError {
     #[error("Invalid tile: {0}")]
     InvalidTile(#[from] TileError),
 
-    /// Not enough tiles to generate texture array.
-    #[error("Not enough tiles to generate texture array: {0} (minimum is 2)")]
-    NotEnoughTiles(usize),
+    /// Cannot generate texture array from tileset because there are no tiles.
+    #[error("Cannot generate texture array from tileset because there are no tiles")]
+    EmptyTileset,
+
+    /// The file extension of the tileset does not match the expected extension
+    /// for the material.
+    ///
+    /// This error usually occurs when the generic attached to the asset loader
+    /// does not specify a material, causing the default material to be used
+    /// instead.
+    #[error("Invalid material loader extension: expected '.{expected}', found '.{found}'")]
+    WrongMaterial { expected: String, found: String },
 }
 
 /// Errors that can occur when loading a tile.

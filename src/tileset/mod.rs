@@ -30,14 +30,16 @@ impl Plugin for TilesetPlugin {
 pub trait RegisterTilesetMaterialExt {
     fn register_tileset_material<M>(&mut self) -> &mut Self
     where
-        M: TilesetMaterial + Default,
+        M: TilesetMaterial,
+        asset::TilesetLoader<M>: Default,
         MaterialPlugin<M>: Plugin;
 }
 
 impl RegisterTilesetMaterialExt for App {
     fn register_tileset_material<M>(&mut self) -> &mut Self
     where
-        M: TilesetMaterial + Default,
+        M: TilesetMaterial,
+        asset::TilesetLoader<M>: Default,
         MaterialPlugin<M>: Plugin,
     {
         self.init_asset::<material::Tileset<M>>()
