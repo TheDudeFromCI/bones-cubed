@@ -1,6 +1,7 @@
 use std::f32::consts::FRAC_PI_4;
 
 use bevy::prelude::*;
+use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use bones_cubed::BonesCubedPlugin;
 use bones_cubed::actor::anim::ActorAnimation;
 use bones_cubed::actor::scene::ActorInstance;
@@ -9,19 +10,32 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(BonesCubedPlugin)
+        .add_plugins(PanOrbitCameraPlugin)
         .add_systems(Startup, setup)
         .add_systems(Update, spawn_random)
         .run();
 }
 
-fn setup(mut commands: Commands) {
+fn setup(
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut commands: Commands,
+) {
     commands.spawn((
         Camera3d::default(),
         Transform::from_xyz(5.0, 5.0, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
+        PanOrbitCamera::default(),
     ));
+
+    commands.spawn((
+        Transform::default(),
+        Mesh3d(meshes.add(Mesh::from(Plane3d::new(Vec3::Y, Vec2::new(6.5, 6.5))))),
+        MeshMaterial3d(materials.add(Color::srgb(0.2, 0.8, 0.2))),
+    ));
+
     commands.spawn((
         DirectionalLight {
-            illuminance: 15_000.,
+            illuminance: 5_000.,
             shadows_enabled: true,
             ..default()
         },
@@ -35,7 +49,7 @@ fn spawn_random(
     asset_server: Res<AssetServer>,
     mut commands: Commands,
 ) {
-    if time.elapsed_secs() < *count as f32 * 1.6 || *count >= 5 {
+    if time.elapsed_secs() < *count as f32 * 1.6 || *count >= 6 {
         return;
     }
 
