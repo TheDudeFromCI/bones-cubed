@@ -29,7 +29,7 @@ fn setup(mut commands: Commands) {
             shadows_enabled: true,
             ..default()
         },
-        Transform::from_rotation(Quat::from_euler(EulerRot::ZYX, 0.0, 0.0, -FRAC_PI_4)),
+        Transform::from_rotation(Quat::from_euler(EulerRot::ZYX, 0.0, FRAC_PI_4, -FRAC_PI_4)),
     ));
 }
 
@@ -44,7 +44,7 @@ fn spawn_random(
     }
 
     commands.spawn((
-        ActorInstance(asset_server.load("proto.actor")),
+        ActorInstance(asset_server.load("actors/proto.actor")),
         Transform::from_xyz(*count as f32 * 2.0 - 5.0, 0.0, 0.0),
         ActorAnimation::new("walk"),
     ));

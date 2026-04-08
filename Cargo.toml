@@ -5,6 +5,9 @@ edition = "2024"
 
 [dependencies]
 bevy = { version = "0.18", default-features = true }
+thiserror = "2"
+
+[dev-dependencies]
 bevy_egui = "0.39"
 bevy-inspector-egui = "0.36"
-thiserror = "2"
+bevy_panorbit_camera = "0.34"

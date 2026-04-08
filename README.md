@@ -8,7 +8,7 @@
 ---
 
 ## Installation
-Bones³ is still in early alpha and *not* currently available on [Crates.io](https://crates.io). However, it framework can still be installed via git for experimentation by adding the following to your `Cargo.toml` file.
+Bones³ is still in early alpha and *not* currently available on [Crates.io](https://crates.io). However, the framework can still be installed via git for experimentation by adding the following to your `Cargo.toml` file.
 
 ```toml
 [dependencies]

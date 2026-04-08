@@ -11,6 +11,9 @@ use bevy::prelude::*;
 use crate::utils;
 use crate::utils::asset::{ContextRelativePathEtx, RelativePathError};
 
+/// The default name for an actor asset that does not have a name.
+pub const DEFAULT_ACTOR_NAME: &str = "<Unnamed Actor Asset>";
+
 /// The `Actor` asset represents a 3D model with a skeleton and animations that
 /// can move and interact within the world.
 #[derive(Debug, Asset, TypePath)]
@@ -87,7 +90,7 @@ impl Actor {
     /// the asset metadata.
     pub fn name(&self) -> &str {
         self.get_property(Self::NAME_PROPERTY)
-            .unwrap_or_else(|| "<Unnamed Actor Asset>")
+            .unwrap_or(DEFAULT_ACTOR_NAME)
     }
 
     /// Gets the model path of this actor asset, if specified in the asset
@@ -187,7 +190,12 @@ impl AssetLoader for ActorAssetLoader {
 
         ctx.add_loaded_labeled_asset("model", gltf_asset);
 
-        info!("Loaded Actor asset at {:?}", ctx.path());
+        let name = properties
+            .get(Actor::NAME_PROPERTY)
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| DEFAULT_ACTOR_NAME.to_string());
+
+        info!("Loaded Actor {} from {:?}", name, ctx.path());
 
         Ok(Actor {
             scene,
@@ -220,12 +228,12 @@ fn glfw_settings(settings: &mut GltfLoaderSettings) {
 /// Errors that can occur during the loading of an `ActorAsset`.
 #[derive(Debug, thiserror::Error)]
 pub enum ActorAssetLoaderError {
-    /// Invalid metadata file.
-    #[error("Invalid metadata file: {0}")]
-    MetadataError(#[from] utils::asset::PropertyParserError),
+    /// Invalid actor file.
+    #[error("Invalid actor file: {0}")]
+    ParserError(#[from] utils::asset::PropertyParserError),
 
-    /// Required property missing from metadata.
-    #[error("Required property missing from metadata: {0}")]
+    /// Required property missing from actor file.
+    #[error("Required property missing from actor file: {0}")]
     MissingProperty(&'static str),
 
     /// GLTF file not found.

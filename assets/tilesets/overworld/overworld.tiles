@@ -1,0 +1,7 @@
+__NAME: Overworld
+__ALPHA_MODE: opaque
+
+# tiles
+grass_top: textures/grass_top.png
+grass_side: textures/grass_side.png
+red: textures/red.png

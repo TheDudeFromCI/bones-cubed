@@ -1,0 +1,9 @@
+name: Grass
+
+model: block
+tileset: ../tilesets/overworld/overworld.tiles
+top: grass_top
+north: grass_side
+south: grass_side
+east: grass_side
+west: grass_side

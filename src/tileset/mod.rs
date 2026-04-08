@@ -1,0 +1,65 @@
+//! This module implement the tileset system, which is responsible for loading
+//! and managing tilesets in the game. A tileset is a collection of textures
+//! that can be used to render block models.
+//!
+//! While a world can contain multiple tilesets, each block may only be
+//! associated with one tileset. In addition, blocks from multiple tilesets will
+//! always generate as separate meshes. However, using a single, large tileset
+//! may result in lots of unused textures taking up memory, so finding a balance
+//! between the number of tilesets and the number of textures in each tileset is
+//! important for performance.
+
+use bevy::prelude::*;
+use bevy::shader::load_shader_library;
+
+use crate::tileset::material::TilesetMaterial;
+
+pub mod asset;
+pub mod material;
+
+pub struct TilesetPlugin;
+impl Plugin for TilesetPlugin {
+    fn build(&self, app: &mut App) {
+        app.register_tileset_material::<material::DefaultTilesetMaterial>();
+
+        load_shader_library!(app, "shader.wgsl");
+        load_shader_library!(app, "prepass.wgsl");
+    }
+}
+
+pub trait RegisterTilesetMaterialExt {
+    fn register_tileset_material<M>(&mut self) -> &mut Self
+    where
+        M: TilesetMaterial + Default,
+        MaterialPlugin<M>: Plugin;
+}
+
+impl RegisterTilesetMaterialExt for App {
+    fn register_tileset_material<M>(&mut self) -> &mut Self
+    where
+        M: TilesetMaterial + Default,
+        MaterialPlugin<M>: Plugin,
+    {
+        self.init_asset::<material::Tileset<M>>()
+            .init_asset_loader::<asset::TilesetLoader<M>>()
+            .add_plugins(MaterialPlugin::<M>::default())
+            .add_systems(
+                Update,
+                (
+                    material::apply_tileset_material::<M>
+                        .in_set(TilesetSystemSet::UpdateMaterialReference),
+                    material::update_tileset_material::<M>
+                        .in_set(TilesetSystemSet::UpdateMaterialReference),
+                    material::remove_tileset_material::<M>
+                        .in_set(TilesetSystemSet::UpdateMaterialReference),
+                ),
+            )
+    }
+}
+
+/// System sets for the tileset plugin.
+#[derive(Debug, SystemSet, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum TilesetSystemSet {
+    /// Update the material reference of entities using tilesets.
+    UpdateMaterialReference,
+}
