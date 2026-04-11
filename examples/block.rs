@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use bones_cubed::BonesCubedPlugin;
 use bones_cubed::block::asset::Block;
+use bones_cubed::block::culling::Culling;
 use bones_cubed::tileset::material::UseTileset;
 use bones_cubed::utils::mesh::TerrainMesh;
 
@@ -53,7 +54,7 @@ fn build_cube_model(
         let mut terrain = TerrainMesh::new();
         block
             .shape()
-            .append_model(Transform::default(), &mut terrain);
+            .append_model(Culling::empty(), Transform::default(), &mut terrain);
 
         commands.spawn((
             Transform::from_xyz(-0.5, -0.5, -0.5),
