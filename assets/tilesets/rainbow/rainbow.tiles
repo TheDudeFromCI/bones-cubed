@@ -1,0 +1,12 @@
+Tileset(
+    name: "Rainbow",
+    size: 16,
+    material: "rainbow",
+
+    tiles: [
+        (
+            name: "rainbow",
+            texture: "../overworld/textures/red.png"
+        ),
+    ]
+)

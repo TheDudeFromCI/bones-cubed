@@ -220,11 +220,11 @@ impl Mul<TerrainVertex> for Mat4 {
     }
 }
 
-impl Mul<TerrainVertex> for Transform {
+impl Mul<Transform> for TerrainVertex {
     type Output = TerrainVertex;
 
-    fn mul(self, rhs: TerrainVertex) -> Self::Output {
-        self.to_matrix() * rhs
+    fn mul(self, rhs: Transform) -> Self::Output {
+        rhs.to_matrix() * self
     }
 }
 
@@ -252,5 +252,19 @@ impl TerrainQuad {
     /// Returns an array of the vertices of the quad.
     fn vertices(&self) -> [TerrainVertex; 4] {
         [self.0, self.1, self.2, self.3]
+    }
+}
+
+impl Mul<Transform> for TerrainQuad {
+    type Output = Self;
+
+    fn mul(self, rhs: Transform) -> Self::Output {
+        let matrix = rhs.to_matrix();
+        TerrainQuad(
+            matrix * self.0,
+            matrix * self.1,
+            matrix * self.2,
+            matrix * self.3,
+        )
     }
 }

@@ -1,7 +1,19 @@
-__NAME: Overworld
-__ALPHA_MODE: opaque
+Tileset(
+    name: "Overworld",
+    size: 16,
 
-# tiles
-grass_top: textures/grass_top.png
-grass_side: textures/grass_side.png
-red: textures/red.png
+    tiles: [
+        (
+            name: "grass_top",
+            texture: "textures/grass_top.png"
+        ),
+        (
+            name: "grass_side",
+            texture: "textures/grass_side.png"
+        ),
+        (
+            name: "red",
+            texture: "textures/red.png"
+        ),
+    ]
+)

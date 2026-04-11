@@ -1,0 +1,31 @@
+Tileset(
+    name: "Overworld",
+    size: 16,
+
+    tiles: [
+        (
+            name: "north",
+            texture: "textures/north.png"
+        ),
+        (
+            name: "south",
+            texture: "textures/south.png"
+        ),
+        (
+            name: "east",
+            texture: "textures/east.png"
+        ),
+        (
+            name: "west",
+            texture: "textures/west.png"
+        ),
+        (
+            name: "top",
+            texture: "textures/top.png"
+        ),
+        (
+            name: "bottom",
+            texture: "textures/bottom.png"
+        ),
+    ]
+)

@@ -1,9 +1,24 @@
-name: Grass
-
-model: block
-tileset: ../tilesets/overworld/overworld.tiles
-top: grass_top
-north: grass_side
-south: grass_side
-east: grass_side
-west: grass_side
+Block(
+    name: "Grass",
+    tileset: "../tilesets/overworld/overworld.tiles",
+    shape: Cube(
+        top: (
+            tile: "grass_top",
+        ),
+        bottom: (
+            tile: "red",
+        ),
+        north: (
+            tile: "grass_side"
+        ),
+        east: (
+            tile: "grass_side"
+        ),
+        south: (
+            tile: "grass_side"
+        ),
+        west: (
+            tile: "grass_side"
+        ),
+    ),
+)

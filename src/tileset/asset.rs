@@ -7,101 +7,101 @@ use bevy::image::{
     ImageLoaderSettings,
     ImageSampler,
 };
+use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
 use bevy::render::render_resource::{Extent3d, TextureDataOrder, TextureDimension, TextureFormat};
+use ron::extensions::Extensions;
+use serde::{Deserialize, Serialize};
 
-use crate::tileset::material::{Tileset, TilesetMaterial, TilesetMaterialSettings};
-use crate::utils;
+use crate::tileset::filelayout::TilesetFileLayout;
+use crate::tileset::material::{DefaultTilesetMaterial, Tileset, TilesetMaterialSettings};
 use crate::utils::asset::{ContextRelativePathEtx, RelativePathError};
+
+pub(crate) type MaterialInitializer =
+    Box<dyn Fn(TilesetMaterialSettings, &mut LoadContext<'_>) -> UntypedHandle + Send + Sync>;
 
 /// The asset loader for tilesets, which loads tileset assets from `.tiles`
 /// files.
-#[derive(Debug, TypePath)]
-pub struct TilesetLoader<M: TilesetMaterial> {
-    _marker: std::marker::PhantomData<M>,
-    ext: Vec<&'static str>,
+#[derive(Default, TypePath)]
+pub struct TilesetLoader {
+    pub(super) materials: HashMap<Box<str>, MaterialInitializer>,
 }
 
-impl<M: TilesetMaterial> TilesetLoader<M> {
-    /// The property name for the display name of a tileset.
-    pub const NAME_PROPERTY: &'static str = "__NAME";
-
-    /// The property name for the alpha mode of a tileset.
-    pub const ALPHA_MODE_PROPERTY: &'static str = "__ALPHA_MODE";
-}
-
-impl<M: TilesetMaterial> Default for TilesetLoader<M> {
-    fn default() -> Self {
-        Self {
-            _marker: std::marker::PhantomData,
-            ext: vec![M::file_extension()],
-        }
+impl TilesetLoader {
+    /// Gets the material for the tileset, using the configured material type if
+    /// it is set, or the default material if it is not set.
+    fn get(
+        &self,
+        name: &str,
+        ctx: &mut LoadContext<'_>,
+        settings: TilesetMaterialSettings,
+    ) -> Option<UntypedHandle> {
+        let constructor = self.materials.get(name)?;
+        Some(constructor(settings, ctx))
     }
 }
 
-impl<M: TilesetMaterial> AssetLoader for TilesetLoader<M> {
-    type Asset = Tileset<M>;
-    type Settings = ();
+impl AssetLoader for TilesetLoader {
+    type Asset = Tileset;
+    type Settings = TilesetLoaderSettings;
     type Error = TilesetLoaderError;
 
     async fn load(
         &self,
         reader: &mut dyn Reader,
-        _settings: &Self::Settings,
+        settings: &Self::Settings,
         ctx: &mut LoadContext<'_>,
     ) -> Result<Self::Asset, Self::Error> {
-        match ctx.path().get_full_extension() {
-            Some(full_ext) if full_ext == M::file_extension() => {}
-            Some(full_ext) => {
-                return Err(TilesetLoaderError::WrongMaterial {
-                    expected: M::file_extension().to_string(),
-                    found: full_ext.to_string(),
-                });
-            }
-            None => {}
+        let mut bytes = vec![];
+        reader.read_to_end(&mut bytes).await?;
+
+        let layout: TilesetFileLayout = ron::Options::default()
+            .with_default_extension(Extensions::UNWRAP_NEWTYPES)
+            .with_default_extension(Extensions::IMPLICIT_SOME)
+            .with_default_extension(Extensions::UNWRAP_VARIANT_NEWTYPES)
+            .from_bytes(&bytes)?;
+
+        let material_name = layout.material.unwrap_or("default".to_string());
+
+        validate_size(layout.size)?;
+        validate_tile_count(layout.tiles.len())?;
+
+        if settings.names_only {
+            let tiles = layout
+                .tiles
+                .into_iter()
+                .map(|tile| tile.name.into())
+                .collect::<Vec<Box<str>>>();
+
+            let material = Handle::<DefaultTilesetMaterial>::default().untyped();
+            let tileset = Tileset::new_untyped(layout.name, tiles, material, material_name.into());
+
+            debug!(
+                "Partially loaded {} from {} with {} tiles)",
+                tileset.name(),
+                ctx.path(),
+                tileset.tile_names().len(),
+            );
+
+            return Ok(tileset);
         }
 
-        let mut properties = utils::asset::parse_properties(reader).await?;
-
-        let name = properties
-            .remove(TilesetLoader::<M>::NAME_PROPERTY)
-            .map(|v| v.to_string());
-
-        let alpha_mode = match properties
-            .remove(TilesetLoader::<M>::ALPHA_MODE_PROPERTY)
-            .map(|v| v.to_string())
-        {
-            Some(ref v) if v == "opaque" => AlphaMode::Opaque,
-            Some(ref v) if v == "cutout" => AlphaMode::Mask(0.5),
-            Some(ref v) if v == "transparent" => AlphaMode::Blend,
-            None => AlphaMode::Opaque,
-            Some(v) => {
-                return Err(TilesetLoaderError::InvalidAlphaMode(v));
-            }
-        };
-
-        if properties.len() < 1 {
-            return Err(TilesetLoaderError::EmptyTileset);
-        }
-
-        let mut size: Option<u32> = None;
         let mut image_data: Vec<u8> = Vec::new();
 
         let mut tiles = Vec::new();
-        for (tile_name, tile_path) in properties.drain() {
-            tiles.push(tile_name);
-
-            let path = ctx.get_relative_path(&tile_path)?;
+        for tile in layout.tiles {
+            let path = ctx.get_relative_path(&tile.texture)?;
             let loaded_tile = ctx
                 .loader()
                 .with_settings(image_settings)
                 .immediate()
                 .load(path)
                 .await?;
-            let tile_image: &Image = loaded_tile.get();
+            let tile_image: Image = loaded_tile.take();
 
-            validate_tile_size(tile_image, &mut size)?;
-            generate_mip_maps(tile_image, &mut image_data)?;
+            validate_tile_size(&tile.name, &tile_image, layout.size)?;
+            generate_mip_maps(&tile.name, &tile_image, &mut image_data)?;
+            tiles.push(tile.name.into());
         }
 
         if tiles.len() == 1 {
@@ -112,32 +112,71 @@ impl<M: TilesetMaterial> AssetLoader for TilesetLoader<M> {
         }
 
         let layer_count = (tiles.len() as u32).max(2);
-        let texture_array = image(image_data, size.unwrap(), layer_count);
+        let texture_array = image(image_data, layout.size, layer_count);
         let img_handle = ctx.add_labeled_asset("texture".to_owned(), texture_array);
 
-        let material = M::init(TilesetMaterialSettings {
-            texture: img_handle,
-            alpha_mode,
-        });
+        let Some(material) = self.get(
+            &material_name,
+            ctx,
+            TilesetMaterialSettings {
+                texture: img_handle,
+                alpha_mode: layout.alpha_mode.into(),
+            },
+        ) else {
+            return Err(TilesetLoaderError::UnknownMaterial(material_name));
+        };
 
-        let material_handle = ctx.add_labeled_asset("material".to_owned(), material);
-        let tileset = Tileset::<M>::new(name, material_handle, tiles);
+        let tileset = Tileset::new_untyped(layout.name, tiles, material, material_name.into());
 
         info!(
             "Loaded {} from {} with {} tiles and alpha mode {:?} (material: {})",
             tileset.name(),
             ctx.path(),
             tileset.tile_names().len(),
-            alpha_mode,
-            M::file_extension(),
+            layout.alpha_mode,
+            tileset.material_name(),
         );
 
         Ok(tileset)
     }
 
     fn extensions(&self) -> &[&str] {
-        &self.ext
+        &["tiles"]
     }
+}
+
+/// Validates that the given tile size is valid for a tileset. A valid tile size
+/// must be a power of two between 1 and 1024, inclusive. Returns an error if
+/// the tile size is invalid.
+fn validate_size(size: u32) -> Result<(), TilesetLoaderError> {
+    if size < 1 {
+        return Err(TilesetLoaderError::TileSizeTooSmall(size));
+    }
+
+    if size > 1024 {
+        return Err(TilesetLoaderError::TileSizeTooLarge(size));
+    }
+
+    if !size.is_power_of_two() {
+        return Err(TilesetLoaderError::SizeNotPowerOfTwo(size));
+    }
+
+    Ok(())
+}
+
+/// Validates that the given tile count is valid for a tileset. A valid tile
+/// count must be between 1 and 65536, inclusive. Returns an error if the tile
+/// count is invalid.
+fn validate_tile_count(count: usize) -> Result<(), TilesetLoaderError> {
+    if count == 0 {
+        return Err(TilesetLoaderError::EmptyTileset);
+    }
+
+    if count > u16::MAX as usize {
+        return Err(TilesetLoaderError::TooManyTiles(count));
+    }
+
+    Ok(())
 }
 
 /// Configures the image loader settings for loading tileset textures.
@@ -194,31 +233,34 @@ fn mipmaps(size: u32) -> u32 {
 /// size, if it is set. If the expected size is not set, it will be set to the
 /// size of the image. Returns an error if the image is not square or if the
 /// size does not match the expected size.
-fn validate_tile_size(image: &Image, expected_size: &mut Option<u32>) -> Result<(), TileError> {
-    if image.width() != image.height() {
-        return Err(TileError::NotSquare {
+fn validate_tile_size(
+    tile_name: &str,
+    image: &Image,
+    expected: u32,
+) -> Result<(), TilesetLoaderError> {
+    if image.width() != expected || image.height() != expected {
+        return Err(TilesetLoaderError::WrongSize {
+            name: tile_name.to_owned(),
             width: image.width(),
             height: image.height(),
+            expected,
         });
-    }
-
-    if let Some(size) = expected_size {
-        if image.width() != *size {
-            return Err(TileError::MultipleSizes {
-                expected: *size,
-                found: image.width(),
-            });
-        }
-    } else {
-        *expected_size = Some(image.width());
     }
 
     Ok(())
 }
 
-fn generate_mip_maps(image: &Image, data: &mut Vec<u8>) -> Result<(), TileError> {
+/// Generates mipmaps for the given image and appends them to the given data
+/// vector. The image data is expected to be in RGBA8 format. The resulting
+/// mipmaps, including the original size, are appended to the data vector in
+/// layer-major order. Returns an error if the image has no data.
+fn generate_mip_maps(
+    tile_name: &str,
+    image: &Image,
+    data: &mut Vec<u8>,
+) -> Result<(), TilesetLoaderError> {
     let Some(src_data) = &image.data else {
-        return Err(TileError::ImageHasNoData);
+        return Err(TilesetLoaderError::ImageHasNoData(tile_name.to_owned()));
     };
 
     let mut size = image.width() as usize;
@@ -270,15 +312,31 @@ fn generate_mip_maps(image: &Image, data: &mut Vec<u8>) -> Result<(), TileError>
     Ok(())
 }
 
+/// Errors that can occur when loading a tileset.
 #[derive(Debug, thiserror::Error)]
 pub enum TilesetLoaderError {
-    /// Invalid tileset file.
-    #[error("Invalid tileset file: {0}")]
-    ParserError(#[from] utils::asset::PropertyParserError),
+    /// An error occurred while reading the block file.
+    #[error("Failed to read block file: {0}")]
+    Io(#[from] std::io::Error),
 
-    /// Invalid alpha mode.
-    #[error("Invalid alpha mode: {0}")]
-    InvalidAlphaMode(String),
+    /// An error occurred while parsing the block file.
+    #[error("Failed to parse block file: {0}")]
+    ParsingError(#[from] ron::de::SpannedError),
+
+    /// The tile image is the wrong size.
+    #[error(
+        "Tile '{name}' is an invalid size: found {width}x{height}, expected {expected}x{expected}"
+    )]
+    WrongSize {
+        name: String,
+        width: u32,
+        height: u32,
+        expected: u32,
+    },
+
+    /// Tile image has no data.
+    #[error("Tile '{0}' has no image data")]
+    ImageHasNoData(String),
 
     /// Image file not found.
     #[error("Image file not found: {0}")]
@@ -288,35 +346,37 @@ pub enum TilesetLoaderError {
     #[error("Image loading error: {0}")]
     ImageLoaderError(#[from] LoadDirectError),
 
-    /// Invalid tile.
-    #[error("Invalid tile: {0}")]
-    InvalidTile(#[from] TileError),
-
-    /// Cannot generate texture array from tileset because there are no tiles.
-    #[error("Cannot generate texture array from tileset because there are no tiles")]
+    /// The tileset contains no tiles.
+    #[error("Tileset contains no tiles")]
     EmptyTileset,
 
-    /// The file extension of the tileset does not match the expected extension
-    /// for the material.
-    ///
-    /// This error usually occurs when the generic attached to the asset loader
-    /// does not specify a material, causing the default material to be used
-    /// instead.
-    #[error("Invalid material loader extension: expected '.{expected}', found '.{found}'")]
-    WrongMaterial { expected: String, found: String },
+    /// The tileset contains too many tiles.
+    #[error("Tileset contains too many tiles: {0} (maximum is 65536)")]
+    TooManyTiles(usize),
+
+    /// The tile size is smaller than the minimum size.
+    #[error("Tile size must be at least 1, found {0}")]
+    TileSizeTooSmall(u32),
+
+    /// The tile size is larger than the maximum size.
+    #[error("Tile size must be at most 1024, found {0}")]
+    TileSizeTooLarge(u32),
+
+    /// The tile size is not a power of two or is larger than the maximum size.
+    #[error("Tile size must be a power of two, found {0}")]
+    SizeNotPowerOfTwo(u32),
+
+    /// The tileset specifies a material that was not registered.
+    #[error("Tileset specifies unknown material '{0}'")]
+    UnknownMaterial(String),
 }
 
-/// Errors that can occur when loading a tile.
-#[derive(Debug, thiserror::Error)]
-pub enum TileError {
-    #[error("Tile is not square: {width}x{height}")]
-    NotSquare { width: u32, height: u32 },
-
-    /// Tile has different size than previous tiles.
-    #[error("Mismatching tile sizes: expected {expected}x{expected}, found {found}x{found}")]
-    MultipleSizes { expected: u32, found: u32 },
-
-    /// Tile image has no data.
-    #[error("Image has no data")]
-    ImageHasNoData,
+/// Settings for the tileset loader, which can be used to configure how tilesets
+/// are loaded.
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct TilesetLoaderSettings {
+    /// Whether to only load the names of the tiles in the tileset, without
+    /// loading the texture or material. This can be used for validation or for
+    /// tools that need to know the tile names without loading the full tileset.
+    pub names_only: bool,
 }

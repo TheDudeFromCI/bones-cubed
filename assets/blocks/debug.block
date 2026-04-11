@@ -1,0 +1,24 @@
+Block(
+    name: "Debug",
+    tileset: "../tilesets/debug/debug.tiles",
+    shape: Cube(
+        top: (
+            tile: "top",
+        ),
+        bottom: (
+            tile: "bottom",
+        ),
+        north: (
+            tile: "north"
+        ),
+        east: (
+            tile: "east"
+        ),
+        south: (
+            tile: "south"
+        ),
+        west: (
+            tile: "west"
+        ),
+    ),
+)

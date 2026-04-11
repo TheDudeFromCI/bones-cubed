@@ -9,23 +9,22 @@ use bevy::render::render_resource::{
 use bevy::shader::ShaderRef;
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use bones_cubed::BonesCubedPlugin;
-use bones_cubed::mesh::{TerrainMesh, TerrainQuad, TerrainVertex};
 use bones_cubed::tileset::RegisterTilesetMaterialExt;
 use bones_cubed::tileset::material::{
     ATTRIBUTE_UV_LAYER,
     DefaultTilesetMaterial,
-    Tileset,
     TilesetMaterial,
     TilesetMaterialSettings,
     UseTileset,
 };
+use bones_cubed::utils::mesh::{TerrainMesh, TerrainQuad, TerrainVertex};
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
+        .register_tileset_material::<RainbowMaterial>() // Register materials *before* adding the plugin
         .add_plugins(BonesCubedPlugin)
         .add_plugins(PanOrbitCameraPlugin)
-        .register_tileset_material::<RainbowMaterial>()
         .add_systems(Startup, setup)
         .add_systems(Update, update_time)
         .run();
@@ -56,8 +55,8 @@ impl TilesetMaterial for RainbowMaterial {
         }
     }
 
-    fn file_extension() -> &'static str {
-        "tiles.rainbow"
+    fn name() -> &'static str {
+        "rainbow"
     }
 }
 
@@ -118,9 +117,6 @@ fn setup(asset_server: Res<AssetServer>, mut meshes: ResMut<Assets<Mesh>>, mut c
         PanOrbitCamera::default(),
     ));
 
-    let tileset_handle: Handle<Tileset<RainbowMaterial>> =
-        asset_server.load("tilesets/rainbow/rainbow.tiles.rainbow");
-
     let mut terrain = TerrainMesh::new();
     terrain.add_quad(TerrainQuad(
         TerrainVertex {
@@ -156,7 +152,7 @@ fn setup(asset_server: Res<AssetServer>, mut meshes: ResMut<Assets<Mesh>>, mut c
     commands.spawn((
         Transform::default(),
         Mesh3d(meshes.add(terrain)),
-        UseTileset(tileset_handle),
+        UseTileset(asset_server.load("tilesets/rainbow/rainbow.tiles")),
     ));
 }
 
