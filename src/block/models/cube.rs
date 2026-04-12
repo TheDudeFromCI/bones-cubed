@@ -6,7 +6,9 @@ use bevy::transform::components::Transform;
 use crate::block::asset::BlockLoaderError;
 use crate::block::culling::Culling;
 use crate::block::filelayout::CubePropertiesLayout;
-use crate::block::models::{BlockModel, FaceProperties, LoadedBlockTileset};
+use crate::block::models::BlockModel;
+use crate::block::models::face::FaceProperties;
+use crate::block::models::helper::LoadedBlockTileset;
 use crate::tileset::material::Tileset;
 use crate::utils::mesh::{TerrainMesh, TerrainQuad, TerrainVertex};
 

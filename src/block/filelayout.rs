@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::block::models::TextureRotation;
+use crate::block::models::face::TextureRotation;
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename = "Block")]
