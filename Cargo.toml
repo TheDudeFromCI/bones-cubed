@@ -6,9 +6,11 @@ edition = "2024"
 [dependencies]
 bevy = { version = "0.18", default-features = true }
 bitflags = "2.11"
+futures-timer = "3.0.3"
 ron = "0.12"
 serde = { version = "1", features = ["derive"] }
 thiserror = "2"
 
 [dev-dependencies]
 bevy_panorbit_camera = "0.34"
+bevy = { version = "0.18", features = ["bevy_dev_tools"] }

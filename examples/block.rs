@@ -53,13 +53,19 @@ fn build_cube_model(
 
         let mut terrain = TerrainMesh::new();
         block
-            .shape()
+            .model()
             .append_model(Culling::empty(), Transform::default(), &mut terrain);
 
         commands.spawn((
             Transform::from_xyz(-0.5, -0.5, -0.5),
             Mesh3d(meshes.add(terrain)),
-            UseTileset(block.tileset().clone()),
+            UseTileset(
+                block
+                    .model()
+                    .tileset()
+                    .expect("Cubes always have a tileset")
+                    .clone(),
+            ),
         ));
 
         commands.entity(entity).despawn();

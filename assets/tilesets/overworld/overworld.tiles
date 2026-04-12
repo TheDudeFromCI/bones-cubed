@@ -4,16 +4,16 @@ Tileset(
 
     tiles: [
         (
-            name: "grass_top",
-            texture: "textures/grass_top.png"
+            name: "grass",
+            texture: "textures/grass.png"
         ),
         (
             name: "grass_side",
             texture: "textures/grass_side.png"
         ),
         (
-            name: "red",
-            texture: "textures/red.png"
+            name: "dirt",
+            texture: "textures/dirt.png"
         ),
     ]
 )

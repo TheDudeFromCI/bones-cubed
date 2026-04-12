@@ -3,8 +3,7 @@ use bevy::prelude::*;
 pub mod asset;
 pub mod culling;
 mod filelayout;
-mod models;
-pub mod shape;
+pub mod models;
 
 /// The main plugin for the block module, which registers the necessary assets
 /// and systems for working with blocks.

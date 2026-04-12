@@ -1,25 +1,25 @@
 Block(
-    name: "Grass",
+    name: "Dirt",
     model: Cube(
         tileset: "../tilesets/overworld/overworld.tiles",
 
         top: (
-            tile: "grass",
+            tile: "dirt",
         ),
         bottom: (
             tile: "dirt",
         ),
         north: (
-            tile: "grass_side"
+            tile: "dirt"
         ),
         east: (
-            tile: "grass_side"
+            tile: "dirt"
         ),
         south: (
-            tile: "grass_side"
+            tile: "dirt"
         ),
         west: (
-            tile: "grass_side"
+            tile: "dirt"
         ),
     ),
 )

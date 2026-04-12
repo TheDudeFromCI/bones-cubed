@@ -1,7 +1,8 @@
 Block(
     name: "Debug",
-    tileset: "../tilesets/debug/debug.tiles",
-    shape: Cube(
+    model: Cube(
+        tileset: "../tilesets/debug/debug.tiles",
+
         top: (
             tile: "top",
         ),

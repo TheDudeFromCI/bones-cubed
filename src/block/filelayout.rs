@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::block::shape::TextureRotation;
+use crate::block::models::TextureRotation;
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename = "Block")]
@@ -8,47 +8,46 @@ pub struct BlockFileLayout {
     /// The name of the block type.
     pub name: String,
 
-    /// The shape of the block.
-    pub shape: BlockShapeLayout,
-
-    /// The path to the tileset to use for this block type, relative to the
-    /// block asset file.
-    pub tileset: String,
+    /// The model of the block.
+    pub model: BlockModelLayout,
 }
 
 #[derive(Debug, Default, Deserialize)]
-pub enum BlockShapeLayout {
+pub enum BlockModelLayout {
     /// An empty block with no geometry.
     #[default]
     Empty,
 
     /// A standard cube block.
-    Cube {
-        /// The layout of the top face of the cube.
-        top: BlockTextureLayout,
-
-        /// The layout of the bottom face of the cube.
-        bottom: BlockTextureLayout,
-
-        /// The layout of the north face of the cube.
-        north: BlockTextureLayout,
-
-        /// The layout of the south face of the cube.
-        south: BlockTextureLayout,
-
-        /// The layout of the east face of the cube.
-        east: BlockTextureLayout,
-
-        /// The layout of the west face of the cube.
-        west: BlockTextureLayout,
-    },
+    Cube(CubePropertiesLayout),
 
     /// A custom block with user-defined geometry.
-    Custom {
-        /// The path to the custom block's model file, relative to the block
-        /// asset file.
-        path: String,
-    },
+    Custom,
+}
+
+#[derive(Debug, Default, Deserialize)]
+pub struct CubePropertiesLayout {
+    /// The path to the tileset to use for this block type, relative to the
+    /// block asset file.
+    pub tileset: String,
+
+    /// The layout of the top face of the cube.
+    pub top: BlockTextureLayout,
+
+    /// The layout of the bottom face of the cube.
+    pub bottom: BlockTextureLayout,
+
+    /// The layout of the north face of the cube.
+    pub north: BlockTextureLayout,
+
+    /// The layout of the south face of the cube.
+    pub south: BlockTextureLayout,
+
+    /// The layout of the east face of the cube.
+    pub east: BlockTextureLayout,
+
+    /// The layout of the west face of the cube.
+    pub west: BlockTextureLayout,
 }
 
 /// The layout of a block face's texture, which determines how the texture is

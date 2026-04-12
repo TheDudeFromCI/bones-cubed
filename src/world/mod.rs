@@ -1,0 +1,33 @@
+use bevy::prelude::*;
+
+use crate::tileset::TilesetSystemSet;
+
+pub mod chunk;
+pub mod remesh;
+
+pub struct WorldPlugin;
+impl Plugin for WorldPlugin {
+    fn build(&self, app_: &mut App) {
+        app_.add_systems(
+            Update,
+            (
+                remesh::find_dirty_chunks.in_set(WorldSystemSets::FindDirtyChunks),
+                remesh::remesh_chunks.in_set(WorldSystemSets::RemeshChunks),
+            ),
+        )
+        .configure_sets(
+            Update,
+            (
+                WorldSystemSets::FindDirtyChunks.before(WorldSystemSets::RemeshChunks),
+                WorldSystemSets::RemeshChunks.before(TilesetSystemSet::UpdateMaterialReference),
+            ),
+        );
+    }
+}
+
+/// System sets for the world plugin.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SystemSet)]
+pub enum WorldSystemSets {
+    FindDirtyChunks,
+    RemeshChunks,
+}
