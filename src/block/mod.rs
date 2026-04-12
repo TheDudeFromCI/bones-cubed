@@ -1,7 +1,6 @@
 use bevy::prelude::*;
 
 pub mod asset;
-pub mod culling;
 mod filelayout;
 pub mod models;
 

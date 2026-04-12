@@ -2,7 +2,7 @@ use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
 
 use crate::block::asset::Block;
-use crate::block::culling::Culling;
+use crate::block::models::culling::Culling;
 
 /// A chunk of blocks in the world, represented as a 16x16x16 grid of block
 /// types.
@@ -36,7 +36,7 @@ impl BChunk {
             blocks: vec![
                 LocalBlock {
                     handle: fill,
-                    culling: Culling::empty(),
+                    culling: Culling::UNKNOWN,
                 };
                 16 * 16 * 16
             ],
@@ -45,9 +45,29 @@ impl BChunk {
     }
 
     /// Gets the block at the given position in this chunk.
+    ///
+    /// If the position is out of bounds, the coorindates will be wrapped
+    /// around. For example, a position of `(-1, 7, 17)` will be treated as
+    /// `(15, 7, 1)`.
     pub fn get_block(&self, pos: IVec3) -> &LocalBlock {
         let index = index(pos);
         &self.blocks[index]
+    }
+
+    /// Gets a mutable reference to the block at the given position in this chunk.
+    pub(super) fn get_block_mut(&mut self, pos: IVec3) -> &mut LocalBlock {
+        let index = index(pos);
+        &mut self.blocks[index]
+    }
+
+    /// Gets the block at the given position in this chunk, returning None if
+    /// the position is out of bounds.
+    pub fn try_get_block(&self, pos: IVec3) -> Option<&LocalBlock> {
+        if pos.x < 0 || pos.x >= 16 || pos.y < 0 || pos.y >= 16 || pos.z < 0 || pos.z >= 16 {
+            None
+        } else {
+            Some(self.get_block(pos))
+        }
     }
 
     /// Sets the block at the given position to the given block type.
@@ -60,10 +80,8 @@ impl BChunk {
 
         self.unique.decrement(&self.blocks[index].handle);
         self.blocks[index].handle = block.clone();
+        self.blocks[index].culling = Culling::UNKNOWN;
         self.unique.increment(block);
-
-        //TODO: update culling information here instead of in the remesh system
-
         self.dirty = true;
     }
 
@@ -93,7 +111,7 @@ pub struct LocalBlock {
 
     /// The culling information for this block, which determines which faces of
     /// the block should be rendered.
-    pub culling: Culling,
+    pub(super) culling: Culling,
 }
 
 /// A small data container that tracks the unique block types present in a

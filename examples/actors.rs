@@ -1,5 +1,6 @@
 use std::f32::consts::FRAC_PI_4;
 
+use bevy::dev_tools::fps_overlay::FpsOverlayPlugin;
 use bevy::prelude::*;
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use bones_cubed::BonesCubedPlugin;
@@ -9,8 +10,9 @@ use bones_cubed::actor::scene::ActorInstance;
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins(BonesCubedPlugin)
         .add_plugins(PanOrbitCameraPlugin)
+        .add_plugins(FpsOverlayPlugin::default())
+        .add_plugins(BonesCubedPlugin)
         .add_systems(Startup, setup)
         .add_systems(Update, spawn_random)
         .run();

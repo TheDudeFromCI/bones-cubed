@@ -1,3 +1,4 @@
+use bevy::dev_tools::fps_overlay::FpsOverlayPlugin;
 use bevy::mesh::MeshVertexBufferLayoutRef;
 use bevy::pbr::{MaterialPipeline, MaterialPipelineKey};
 use bevy::prelude::*;
@@ -22,9 +23,10 @@ use bones_cubed::utils::mesh::{TerrainMesh, TerrainQuad, TerrainVertex};
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugins(PanOrbitCameraPlugin)
+        .add_plugins(FpsOverlayPlugin::default())
         .register_tileset_material::<RainbowMaterial>() // Register materials *before* adding the plugin
         .add_plugins(BonesCubedPlugin)
-        .add_plugins(PanOrbitCameraPlugin)
         .add_systems(Startup, setup)
         .add_systems(Update, update_time)
         .run();

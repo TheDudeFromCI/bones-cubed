@@ -62,8 +62,6 @@ impl AssetLoader for BlockAssetLoader {
             .with_default_extension(Extensions::UNWRAP_VARIANT_NEWTYPES)
             .from_bytes(&bytes)?;
 
-        futures_timer::Delay::new(std::time::Duration::from_secs_f32(5.0)).await;
-
         let shape = match layout.model {
             BlockModelLayout::Empty => BlockModel::Empty,
             BlockModelLayout::Cube(properties) => models::cube::load(properties, ctx).await?,

@@ -1,11 +1,12 @@
 use bevy::prelude::*;
 
-use crate::block::culling::Culling;
 use crate::block::models::cube::CubeProperties;
+use crate::block::models::culling::{Culling, FaceOcclusionShape};
 use crate::tileset::material::Tileset;
 use crate::utils::mesh::TerrainMesh;
 
 pub mod cube;
+pub mod culling;
 pub mod face;
 mod helper;
 
@@ -51,6 +52,62 @@ impl BlockModel {
         match self {
             BlockModel::Empty | BlockModel::Custom => None,
             BlockModel::Cube(properties) => Some(&properties.tileset),
+        }
+    }
+
+    /// Gets how this block model occludes the adjacent block above it.
+    pub fn occludes_up(&self) -> FaceOcclusionShape {
+        match self {
+            Self::Empty => FaceOcclusionShape::None,
+            Self::Cube(_) => FaceOcclusionShape::Full,
+            Self::Custom => FaceOcclusionShape::None,
+        }
+    }
+
+    /// Gets how this block model occludes the adjacent block below it.
+    pub fn occludes_down(&self) -> FaceOcclusionShape {
+        match self {
+            Self::Empty => FaceOcclusionShape::None,
+            Self::Cube(_) => FaceOcclusionShape::Full,
+            Self::Custom => FaceOcclusionShape::None,
+        }
+    }
+
+    /// Gets how this block model occludes the adjacent block to the north of
+    /// it.
+    pub fn occludes_north(&self) -> FaceOcclusionShape {
+        match self {
+            Self::Empty => FaceOcclusionShape::None,
+            Self::Cube(_) => FaceOcclusionShape::Full,
+            Self::Custom => FaceOcclusionShape::None,
+        }
+    }
+
+    /// Gets how this block model occludes the adjacent block to the south of
+    /// it.
+    pub fn occludes_south(&self) -> FaceOcclusionShape {
+        match self {
+            Self::Empty => FaceOcclusionShape::None,
+            Self::Cube(_) => FaceOcclusionShape::Full,
+            Self::Custom => FaceOcclusionShape::None,
+        }
+    }
+
+    /// Gets how this block model occludes the adjacent block to the east of it.
+    pub fn occludes_east(&self) -> FaceOcclusionShape {
+        match self {
+            Self::Empty => FaceOcclusionShape::None,
+            Self::Cube(_) => FaceOcclusionShape::Full,
+            Self::Custom => FaceOcclusionShape::None,
+        }
+    }
+
+    /// Gets how this block model occludes the adjacent block to the west of it.
+    pub fn occludes_west(&self) -> FaceOcclusionShape {
+        match self {
+            Self::Empty => FaceOcclusionShape::None,
+            Self::Cube(_) => FaceOcclusionShape::Full,
+            Self::Custom => FaceOcclusionShape::None,
         }
     }
 }

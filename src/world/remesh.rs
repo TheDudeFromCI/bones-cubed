@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use bevy::utils::Parallel;
 
 use crate::block::asset::Block;
+use crate::block::models::culling::Culling;
 use crate::tileset::material::{Tileset, UseTileset};
 use crate::utils::mesh::TerrainMesh;
 use crate::world::chunk::BChunk;
@@ -37,6 +38,7 @@ pub(super) fn remesh_chunks(
     blocks: Res<Assets<Block>>,
     mut mesh_assets: ResMut<Assets<Mesh>>,
     chunks: Query<(Entity, &BChunk), With<NeedsRemesh>>,
+    par_commands: ParallelCommands,
     mut commands: Commands,
 ) {
     if chunks.is_empty() {
@@ -59,6 +61,13 @@ pub(super) fn remesh_chunks(
             || queue.borrow_local_mut(),
             |out, (entity, chunk)| {
                 let mut meshes = TilesetMeshesMap::default();
+                let mut culling_cache_events = Vec::new();
+
+                let get_model = |pos: IVec3| {
+                    chunk
+                        .try_get_block(pos)
+                        .and_then(|block| blocks.get(&block.handle).map(|b| b.model()))
+                };
 
                 for z in 0 .. 16 {
                     for y in 0 .. 16 {
@@ -75,6 +84,33 @@ pub(super) fn remesh_chunks(
                                 continue;
                             };
 
+                            let mut culling = local_block.culling;
+
+                            if local_block.culling.contains(Culling::UNKNOWN) {
+                                let up = get_model(pos + IVec3::Y);
+                                let down = get_model(pos - IVec3::Y);
+                                let north = get_model(pos + IVec3::Z);
+                                let south = get_model(pos - IVec3::Z);
+                                let east = get_model(pos + IVec3::X);
+                                let west = get_model(pos - IVec3::X);
+
+                                culling = Culling::calculate_culling(
+                                    block.model(),
+                                    up,
+                                    down,
+                                    north,
+                                    south,
+                                    east,
+                                    west,
+                                );
+
+                                culling_cache_events.push(UpdateCullingMessage {
+                                    entity,
+                                    pos,
+                                    culling,
+                                });
+                            }
+
                             let model = block.model();
 
                             let Some(tileset) = model.tileset() else {
@@ -84,10 +120,16 @@ pub(super) fn remesh_chunks(
                             let mesh = meshes.get(tileset);
                             let transform = Transform::from_translation(pos.as_vec3());
 
-                            model.append_model(local_block.culling, transform, mesh);
+                            model.append_model(culling, transform, mesh);
                         }
                     }
                 }
+
+                par_commands.command_scope(|mut commands| {
+                    for event in culling_cache_events {
+                        commands.trigger(event);
+                    }
+                });
 
                 for (tileset, mesh) in meshes.map.into_iter() {
                     out.push((entity, tileset.clone(), mesh));
@@ -119,4 +161,30 @@ impl TilesetMeshesMap {
             .get_mut(tileset)
             .expect("tileset mesh must exist after insertion")
     }
+}
+
+/// Message sent when a block's culling information is updated during the remesh
+/// to cache the culling information.
+#[derive(Debug, EntityEvent)]
+pub struct UpdateCullingMessage {
+    entity: Entity,
+    pos: IVec3,
+    culling: Culling,
+}
+
+/// Updates the culling cache for a block in a chunk when an
+/// [`UpdateCullingMessage`] is received.
+pub(super) fn update_culling_cache(
+    update: On<UpdateCullingMessage>,
+    mut chunks: Query<&mut BChunk>,
+) {
+    let Ok(mut chunk) = chunks.get_mut(update.entity) else {
+        warn!(
+            "Chunk {:?} not found for updating culling cache at pos {:?}",
+            update.entity, update.pos
+        );
+        return;
+    };
+
+    chunk.get_block_mut(update.pos).culling = update.culling;
 }

@@ -6,7 +6,7 @@ Tileset(
     tiles: [
         (
             name: "rainbow",
-            texture: "../overworld/textures/red.png"
+            texture: "textures/white.png"
         ),
     ]
 )

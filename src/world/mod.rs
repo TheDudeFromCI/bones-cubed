@@ -21,7 +21,8 @@ impl Plugin for WorldPlugin {
                 WorldSystemSets::FindDirtyChunks.before(WorldSystemSets::RemeshChunks),
                 WorldSystemSets::RemeshChunks.before(TilesetSystemSet::UpdateMaterialReference),
             ),
-        );
+        )
+        .add_observer(remesh::update_culling_cache);
     }
 }
 
