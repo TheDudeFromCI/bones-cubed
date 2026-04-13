@@ -26,6 +26,15 @@ impl Culling {
         Culling::from_bits_retain(0b01111111)
     }
 
+    #[inline(always)]
+    fn try_occlude(&mut self, a: FaceOcclusionShape, b: FaceOcclusionShape, face_flag: Culling) {
+        match a.is_occluded_by(b) {
+            OcclusionResult::Occluded => self.insert(face_flag),
+            OcclusionResult::NotOccluded => {}
+            OcclusionResult::Unknown => self.insert(Culling::UNKNOWN),
+        }
+    }
+
     pub fn calculate_culling(
         block: &BlockModel,
         up: Option<&BlockModel>,
@@ -35,14 +44,12 @@ impl Culling {
         east: Option<&BlockModel>,
         west: Option<&BlockModel>,
     ) -> Culling {
-        let mut culling = Culling::empty();
-
-        let up = up.map_or(FaceOcclusionShape::None, |b| b.occludes_down());
-        let down = down.map_or(FaceOcclusionShape::None, |b| b.occludes_up());
-        let north = north.map_or(FaceOcclusionShape::None, |b| b.occludes_south());
-        let south = south.map_or(FaceOcclusionShape::None, |b| b.occludes_north());
-        let east = east.map_or(FaceOcclusionShape::None, |b| b.occludes_west());
-        let west = west.map_or(FaceOcclusionShape::None, |b| b.occludes_east());
+        let up = up.map_or(FaceOcclusionShape::Unknown, |b| b.occludes_down());
+        let down = down.map_or(FaceOcclusionShape::Unknown, |b| b.occludes_up());
+        let north = north.map_or(FaceOcclusionShape::Unknown, |b| b.occludes_south());
+        let south = south.map_or(FaceOcclusionShape::Unknown, |b| b.occludes_north());
+        let east = east.map_or(FaceOcclusionShape::Unknown, |b| b.occludes_west());
+        let west = west.map_or(FaceOcclusionShape::Unknown, |b| b.occludes_east());
 
         if up == FaceOcclusionShape::Full
             && down == FaceOcclusionShape::Full
@@ -51,28 +58,17 @@ impl Culling {
             && east == FaceOcclusionShape::Full
             && west == FaceOcclusionShape::Full
         {
-            culling |= Culling::CENTER;
+            // includes center
+            return Culling::full();
         }
 
-        if block.occludes_up().is_occluded_by(up) {
-            culling |= Culling::POS_Y;
-        }
-        if block.occludes_down().is_occluded_by(down) {
-            culling |= Culling::NEG_Y;
-        }
-        if block.occludes_north().is_occluded_by(north) {
-            culling |= Culling::POS_Z;
-        }
-        if block.occludes_south().is_occluded_by(south) {
-            culling |= Culling::NEG_Z;
-        }
-        if block.occludes_east().is_occluded_by(east) {
-            culling |= Culling::POS_X;
-        }
-        if block.occludes_west().is_occluded_by(west) {
-            culling |= Culling::NEG_X;
-        }
-
+        let mut culling = Culling::empty();
+        culling.try_occlude(block.occludes_up(), up, Culling::POS_Y);
+        culling.try_occlude(block.occludes_down(), down, Culling::NEG_Y);
+        culling.try_occlude(block.occludes_north(), north, Culling::POS_Z);
+        culling.try_occlude(block.occludes_south(), south, Culling::NEG_Z);
+        culling.try_occlude(block.occludes_east(), east, Culling::POS_X);
+        culling.try_occlude(block.occludes_west(), west, Culling::NEG_X);
         culling
     }
 }
@@ -86,15 +82,34 @@ pub enum FaceOcclusionShape {
 
     /// The face fully occludes the adjacent block.
     Full,
+
+    /// The face has an unknown occlusion shape.
+    Unknown,
 }
 
 impl FaceOcclusionShape {
     /// Returns the occlusion shape for a given block model and face.
-    pub fn is_occluded_by(&self, other: FaceOcclusionShape) -> bool {
+    #[inline(always)]
+    pub fn is_occluded_by(&self, other: FaceOcclusionShape) -> OcclusionResult {
         match (self, other) {
-            (FaceOcclusionShape::None, _) => false,
-            (FaceOcclusionShape::Full, FaceOcclusionShape::None) => false,
-            (FaceOcclusionShape::Full, FaceOcclusionShape::Full) => true,
+            (_, FaceOcclusionShape::Unknown) => OcclusionResult::Unknown,
+            (FaceOcclusionShape::Unknown, _) => OcclusionResult::Unknown,
+            (_, FaceOcclusionShape::None) => OcclusionResult::NotOccluded,
+            (_, FaceOcclusionShape::Full) => OcclusionResult::Occluded,
         }
     }
+}
+
+/// The result of an occlusion check for a block face.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum OcclusionResult {
+    /// The face is fully occluded and should not be rendered.
+    Occluded,
+
+    /// The face is not occluded and should be rendered.
+    NotOccluded,
+
+    /// The occlusion state of the face is unknown (usually due to BlockModels
+    /// still loading) and could not be calculated.
+    Unknown,
 }

@@ -44,9 +44,9 @@ fn setup(asset_server: Res<AssetServer>, mut commands: Commands) {
                 let b = (z as f32 * 0.25).cos();
                 let c = a + b + 3.0;
                 if c > (y as f32 + 1.0) * 0.4 {
-                    chunk.set_block(IVec3::new(x, y, z), &dirt);
+                    chunk.set_block_unchecked(IVec3::new(x, y, z), &dirt);
                 } else if c > y as f32 * 0.4 {
-                    chunk.set_block(IVec3::new(x, y, z), &grass);
+                    chunk.set_block_unchecked(IVec3::new(x, y, z), &grass);
                 }
             }
         }

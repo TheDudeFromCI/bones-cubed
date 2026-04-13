@@ -43,6 +43,7 @@ impl BlockModel {
 
     /// Returns true if this block shape has no geometry and should not be
     /// rendered.
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         matches!(self, BlockModel::Empty)
     }
@@ -56,6 +57,7 @@ impl BlockModel {
     }
 
     /// Gets how this block model occludes the adjacent block above it.
+    #[inline(always)]
     pub fn occludes_up(&self) -> FaceOcclusionShape {
         match self {
             Self::Empty => FaceOcclusionShape::None,
@@ -65,6 +67,7 @@ impl BlockModel {
     }
 
     /// Gets how this block model occludes the adjacent block below it.
+    #[inline(always)]
     pub fn occludes_down(&self) -> FaceOcclusionShape {
         match self {
             Self::Empty => FaceOcclusionShape::None,
@@ -75,6 +78,7 @@ impl BlockModel {
 
     /// Gets how this block model occludes the adjacent block to the north of
     /// it.
+    #[inline(always)]
     pub fn occludes_north(&self) -> FaceOcclusionShape {
         match self {
             Self::Empty => FaceOcclusionShape::None,
@@ -85,6 +89,7 @@ impl BlockModel {
 
     /// Gets how this block model occludes the adjacent block to the south of
     /// it.
+    #[inline(always)]
     pub fn occludes_south(&self) -> FaceOcclusionShape {
         match self {
             Self::Empty => FaceOcclusionShape::None,
@@ -94,6 +99,7 @@ impl BlockModel {
     }
 
     /// Gets how this block model occludes the adjacent block to the east of it.
+    #[inline(always)]
     pub fn occludes_east(&self) -> FaceOcclusionShape {
         match self {
             Self::Empty => FaceOcclusionShape::None,
@@ -103,6 +109,7 @@ impl BlockModel {
     }
 
     /// Gets how this block model occludes the adjacent block to the west of it.
+    #[inline(always)]
     pub fn occludes_west(&self) -> FaceOcclusionShape {
         match self {
             Self::Empty => FaceOcclusionShape::None,
