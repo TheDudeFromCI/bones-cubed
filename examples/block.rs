@@ -4,10 +4,7 @@ use bevy::dev_tools::fps_overlay::FpsOverlayPlugin;
 use bevy::prelude::*;
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use bones_cubed::BonesCubedPlugin;
-use bones_cubed::block::asset::Block;
-use bones_cubed::block::models::culling::Culling;
-use bones_cubed::tileset::material::UseTileset;
-use bones_cubed::world::mesh::TerrainMesh;
+use bones_cubed::block::rendered::RenderedBlock;
 
 fn main() {
     App::new()
@@ -16,7 +13,6 @@ fn main() {
         .add_plugins(FpsOverlayPlugin::default())
         .add_plugins(BonesCubedPlugin)
         .add_systems(Startup, setup)
-        .add_systems(Update, build_cube_model)
         .run();
 }
 
@@ -35,41 +31,5 @@ fn setup(asset_server: Res<AssetServer>, mut commands: Commands) {
         Transform::from_rotation(Quat::from_euler(EulerRot::ZYX, 0.0, FRAC_PI_4, -FRAC_PI_4)),
     ));
 
-    commands.spawn(CubeModel(asset_server.load("blocks/debug.block")));
-}
-
-#[derive(Component)]
-struct CubeModel(Handle<Block>);
-
-fn build_cube_model(
-    blocks: Res<Assets<Block>>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    query: Query<(Entity, &CubeModel)>,
-    mut commands: Commands,
-) {
-    for (entity, cube_model) in &query {
-        let Some(block) = blocks.get(&cube_model.0) else {
-            // block still loading
-            continue;
-        };
-
-        let mut terrain = TerrainMesh::new();
-        block
-            .model()
-            .append_model(Culling::empty(), Transform::default(), &mut terrain);
-
-        commands.spawn((
-            Transform::from_xyz(-0.5, -0.5, -0.5),
-            Mesh3d(meshes.add(terrain)),
-            UseTileset(
-                block
-                    .model()
-                    .tileset()
-                    .expect("Cubes always have a tileset")
-                    .clone(),
-            ),
-        ));
-
-        commands.entity(entity).despawn();
-    }
+    commands.spawn(RenderedBlock(asset_server.load("blocks/debug.block")));
 }
