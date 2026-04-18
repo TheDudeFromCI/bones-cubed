@@ -7,7 +7,7 @@ use bones_cubed::BonesCubedPlugin;
 use bones_cubed::block::asset::Block;
 use bones_cubed::block::models::culling::Culling;
 use bones_cubed::tileset::material::UseTileset;
-use bones_cubed::utils::mesh::TerrainMesh;
+use bones_cubed::world::mesh::TerrainMesh;
 
 fn main() {
     App::new()

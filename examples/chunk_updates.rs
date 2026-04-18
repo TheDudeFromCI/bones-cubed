@@ -7,6 +7,7 @@ use bones_cubed::BonesCubedPlugin;
 use bones_cubed::block::asset::Block;
 use bones_cubed::world::chunk::BChunk;
 use bones_cubed::world::param::BChunkWriter;
+use bones_cubed::world::pos::{ChunkPos, LocalPos};
 use bones_cubed::world::remesh::RenderedChunk;
 
 fn main() {
@@ -48,9 +49,9 @@ fn setup(asset_server: Res<AssetServer>, mut commands: Commands) {
     let grass = asset_server.load("blocks/grass.block");
     let dirt = asset_server.load("blocks/dirt.block");
 
-    let chunk_entity = commands
+    let chunk = commands
         .spawn((
-            BChunk::new(air.clone()),
+            BChunk::new(ChunkPos::default(), air.clone()),
             RenderedChunk::default(),
             Transform::from_translation(Vec3::new(-8.0, -8.0, -8.0)),
         ))
@@ -60,7 +61,7 @@ fn setup(asset_server: Res<AssetServer>, mut commands: Commands) {
         air,
         grass,
         dirt,
-        chunk: chunk_entity,
+        chunk,
     });
 }
 
@@ -83,7 +84,7 @@ fn update(time: Res<Time>, block_list: Res<BlockList>, mut chunk_editor: BChunkW
                     &block_list.air
                 };
 
-                let pos = IVec3::new(x, y, z);
+                let pos = LocalPos::new(x, y, z);
                 editor.set_block(pos, block);
             }
         }

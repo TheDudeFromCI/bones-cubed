@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use crate::actor::asset::Actor;
 
 #[derive(Debug, Component, Reflect, Deref)]
+#[require(Transform, Visibility)]
 pub struct ActorInstance(pub Handle<Actor>);
 
 impl AsAssetId for ActorInstance {

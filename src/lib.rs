@@ -15,5 +15,8 @@ impl Plugin for BonesCubedPlugin {
             .add_plugins(tileset::TilesetPlugin)
             .add_plugins(block::BlockPlugin)
             .add_plugins(world::WorldPlugin);
+
+        #[cfg(feature = "gizmos")]
+        app_.add_plugins(utils::gizmos::B3GizmosPlugin);
     }
 }

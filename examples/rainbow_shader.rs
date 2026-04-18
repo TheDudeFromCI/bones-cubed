@@ -18,7 +18,7 @@ use bones_cubed::tileset::material::{
     TilesetMaterialSettings,
     UseTileset,
 };
-use bones_cubed::utils::mesh::{TerrainMesh, TerrainQuad, TerrainVertex};
+use bones_cubed::world::mesh::{TerrainMesh, TerrainQuad, TerrainVertex};
 
 fn main() {
     App::new()

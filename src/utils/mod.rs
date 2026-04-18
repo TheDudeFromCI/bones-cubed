@@ -1,2 +1,4 @@
 pub mod asset;
-pub mod mesh;
+
+#[cfg(feature = "gizmos")]
+pub mod gizmos;

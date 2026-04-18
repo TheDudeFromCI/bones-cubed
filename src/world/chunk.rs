@@ -4,11 +4,17 @@ use bevy::prelude::*;
 use crate::block::asset::Block;
 use crate::block::models::BlockModel;
 use crate::block::models::culling::Culling;
+use crate::world::pos::{ChunkPos, LocalPos};
+use crate::world::world::BWorld;
 
 /// A chunk of blocks in the world, represented as a 16x16x16 grid of block
 /// types.
 #[derive(Debug, Component, Reflect)]
+#[require(Transform)]
 pub struct BChunk {
+    /// The position of the chunk in the world.
+    pos: ChunkPos,
+
     /// A small data container that tracks the unique block types present in
     /// this chunk.
     unique: UniqueBlockTypes,
@@ -21,8 +27,9 @@ pub struct BChunk {
 
 impl BChunk {
     /// Creates a new chunk filled with the given block type.
-    pub fn new(fill: Handle<Block>) -> Self {
+    pub fn new(pos: ChunkPos, fill: Handle<Block>) -> Self {
         Self {
+            pos,
             unique: UniqueBlockTypes {
                 types: {
                     let mut map = HashMap::default();
@@ -34,24 +41,19 @@ impl BChunk {
         }
     }
 
+    /// Gets the position of this chunk in the world.
+    pub fn pos(&self) -> ChunkPos {
+        self.pos
+    }
+
     /// Gets the block at the given position in this chunk.
     ///
     /// If the position is out of bounds, the coordinates will be wrapped
     /// around. For example, a position of `(-1, 7, 17)` will be treated as
     /// `(15, 7, 1)`.
-    pub fn get_block(&self, pos: IVec3) -> &Handle<Block> {
+    pub fn get_block(&self, pos: LocalPos) -> &Handle<Block> {
         let index = index(pos);
         &self.blocks[index]
-    }
-
-    /// Gets the block at the given position in this chunk, returning None if
-    /// the position is out of bounds.
-    pub fn try_get_block(&self, pos: IVec3) -> Option<&Handle<Block>> {
-        if !in_bounds(pos) {
-            None
-        } else {
-            Some(self.get_block(pos))
-        }
     }
 
     /// Sets the block at the given position to the given block type.
@@ -68,8 +70,8 @@ impl BChunk {
     /// [`BChunkEditor`] system param to set the block instead, which will also
     /// mark the chunk as dirty for remeshing. (Note that culling information is
     /// recalculated automatically during the first remesh, meaning it is safe
-    /// to call this method on a chunk before spawning it for the firs time.)
-    pub fn set_block_unchecked(&mut self, pos: IVec3, block: &Handle<Block>) -> bool {
+    /// to call this method on a chunk before spawning it for the first time.)
+    pub fn set_block_unchecked(&mut self, pos: LocalPos, block: &Handle<Block>) -> bool {
         let index = index(pos);
 
         if self.blocks[index] == *block {
@@ -116,19 +118,9 @@ impl BChunkCulling {
     /// If the position is out of bounds, the coordinates will be wrapped
     /// around. For example, a position of `(-1, 7, 17)` will be treated as
     /// `(15, 7, 1)`.
-    pub fn get_culling(&self, pos: IVec3) -> Culling {
+    pub fn get_culling(&self, pos: LocalPos) -> Culling {
         let index = index(pos);
         self.blocks[index]
-    }
-
-    /// Gets the culling information for the block at the given position in this
-    /// chunk, returning None if the position is out of bounds.
-    pub fn try_get_culling(&self, pos: IVec3) -> Option<Culling> {
-        if !in_bounds(pos) {
-            None
-        } else {
-            Some(self.get_culling(pos))
-        }
     }
 
     /// Sets the culling information for the block at the given position to the
@@ -145,7 +137,7 @@ impl BChunkCulling {
     /// which may lead to odd rendering if used incorrectly. It is recommended
     /// to use the [`Self::recalculate_culling_at`] method instead, which will
     /// calculate the correct culling value based on the correct block models.
-    pub fn set_culling_unchecked(&mut self, pos: IVec3, culling: Culling) -> bool {
+    pub fn set_culling_unchecked(&mut self, pos: LocalPos, culling: Culling) -> bool {
         let index = index(pos);
         let old_culling = self.blocks[index];
         self.blocks[index] = culling;
@@ -163,26 +155,26 @@ impl BChunkCulling {
         &mut self,
         blocks: &Res<Assets<Block>>,
         chunk: &BChunk,
-        pos: IVec3,
+        pos: LocalPos,
     ) -> bool {
-        if !in_bounds(pos) {
-            return false;
-        }
-
         let get_model = |pos: IVec3| {
-            chunk
-                .try_get_block(pos)
-                .and_then(|block| blocks.get(block).map(|b| b.model()))
+            if !in_bounds(pos) {
+                return None;
+            }
+
+            let b = chunk.get_block(pos.into());
+            blocks.get(b).map(|b| b.model())
         };
 
+        let rel_pos = IVec3::from(pos);
         let cull_value = Culling::calculate_culling(
-            get_model(pos).unwrap_or(&BlockModel::Empty),
-            get_model(pos + IVec3::Y),
-            get_model(pos - IVec3::Y),
-            get_model(pos + IVec3::Z),
-            get_model(pos - IVec3::Z),
-            get_model(pos + IVec3::X),
-            get_model(pos - IVec3::X),
+            get_model(rel_pos).unwrap_or(&BlockModel::Empty),
+            get_model(rel_pos + IVec3::Y),
+            get_model(rel_pos - IVec3::Y),
+            get_model(rel_pos + IVec3::Z),
+            get_model(rel_pos - IVec3::Z),
+            get_model(rel_pos + IVec3::X),
+            get_model(rel_pos - IVec3::X),
         );
         self.set_culling_unchecked(pos, cull_value)
     }
@@ -229,13 +221,36 @@ impl UniqueBlockTypes {
 }
 
 /// Converts a block position within a chunk to an index in the blocks vector.
-fn index(pos: IVec3) -> usize {
-    let IVec3 { x, y, z } = pos;
-    ((x & 15) + (y & 15) * 16 + (z & 15) * 16 * 16) as usize
+fn index(pos: LocalPos) -> usize {
+    (pos.x + pos.y * 16 + pos.z * 16 * 16) as usize
 }
 
 /// Checks if the given block position is within the bounds of a chunk (0 to 15
 /// in each dimension).
 fn in_bounds(pos: IVec3) -> bool {
     pos.x >= 0 && pos.x < 16 && pos.y >= 0 && pos.y < 16 && pos.z >= 0 && pos.z < 16
+}
+
+/// An observer that listens for chunks being spawned, and updates their
+/// transforms based on their chunk positions.
+pub(super) fn update_chunk_transform(
+    trigger: On<Add, BChunk>,
+    worlds: Query<&BWorld>,
+    mut chunks: Query<(&BChunk, &mut Transform, &ChildOf)>,
+) {
+    let Ok((chunk, mut transform, ChildOf(world_entity))) = chunks.get_mut(trigger.entity) else {
+        return;
+    };
+
+    // If this chunk isn't part of a world, don't update its transform.
+    if worlds.get(*world_entity).is_err() {
+        return;
+    }
+
+    let chunk_pos = chunk.pos();
+    transform.translation = Vec3::new(
+        chunk_pos.x as f32 * 16.0,
+        chunk_pos.y as f32 * 16.0,
+        chunk_pos.z as f32 * 16.0,
+    );
 }

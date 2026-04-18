@@ -172,7 +172,7 @@ impl From<TerrainMesh> for Mesh {
 
         Mesh::new(
             PrimitiveTopology::TriangleList,
-            RenderAssetUsages::RENDER_WORLD,
+            RenderAssetUsages::RENDER_WORLD | RenderAssetUsages::MAIN_WORLD,
         )
         .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, value.positions)
         .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, value.normals)

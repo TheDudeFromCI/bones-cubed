@@ -10,7 +10,7 @@ use crate::block::models::culling::Culling;
 use crate::block::models::face::FaceProperties;
 use crate::block::models::helper::LoadedBlockTileset;
 use crate::tileset::material::Tileset;
-use crate::utils::mesh::{TerrainMesh, TerrainQuad, TerrainVertex};
+use crate::world::mesh::{TerrainMesh, TerrainQuad, TerrainVertex};
 
 #[derive(Debug, Clone)]
 pub struct CubeProperties {
@@ -118,28 +118,28 @@ pub(crate) fn build(
                 TerrainVertex {
                     position: Vec3::new(0.0, 0.0, 1.0),
                     uv: properties.north_face.rotation.matrix * Vec2::new(0.0, 1.0),
-                    normal: Vec3::NEG_Z,
+                    normal: Vec3::Z,
                     color: Color::WHITE,
                     layer: properties.north_face.texture_layer as u32,
                 },
                 TerrainVertex {
                     position: Vec3::new(1.0, 0.0, 1.0),
                     uv: properties.north_face.rotation.matrix * Vec2::new(1.0, 1.0),
-                    normal: Vec3::NEG_Z,
+                    normal: Vec3::Z,
                     color: Color::WHITE,
                     layer: properties.north_face.texture_layer as u32,
                 },
                 TerrainVertex {
                     position: Vec3::new(1.0, 1.0, 1.0),
                     uv: properties.north_face.rotation.matrix * Vec2::new(1.0, 0.0),
-                    normal: Vec3::NEG_Z,
+                    normal: Vec3::Z,
                     color: Color::WHITE,
                     layer: properties.north_face.texture_layer as u32,
                 },
                 TerrainVertex {
                     position: Vec3::new(0.0, 1.0, 1.0),
                     uv: properties.north_face.rotation.matrix * Vec2::new(0.0, 0.0),
-                    normal: Vec3::NEG_Z,
+                    normal: Vec3::Z,
                     color: Color::WHITE,
                     layer: properties.north_face.texture_layer as u32,
                 },

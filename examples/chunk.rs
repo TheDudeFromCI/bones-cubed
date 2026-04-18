@@ -5,6 +5,7 @@ use bevy::prelude::*;
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use bones_cubed::BonesCubedPlugin;
 use bones_cubed::world::chunk::BChunk;
+use bones_cubed::world::pos::{ChunkPos, LocalPos};
 
 fn main() {
     App::new()
@@ -35,7 +36,7 @@ fn setup(asset_server: Res<AssetServer>, mut commands: Commands) {
     let grass = asset_server.load("blocks/grass.block");
     let dirt = asset_server.load("blocks/dirt.block");
 
-    let mut chunk = BChunk::new(air);
+    let mut chunk = BChunk::new(ChunkPos::default(), air);
 
     for x in 0 .. 16 {
         for y in 0 .. 16 {
@@ -44,9 +45,9 @@ fn setup(asset_server: Res<AssetServer>, mut commands: Commands) {
                 let b = (z as f32 * 0.25).cos();
                 let c = a + b + 3.0;
                 if c > (y as f32 + 1.0) * 0.4 {
-                    chunk.set_block_unchecked(IVec3::new(x, y, z), &dirt);
+                    chunk.set_block_unchecked(LocalPos::new(x, y, z), &dirt);
                 } else if c > y as f32 * 0.4 {
-                    chunk.set_block_unchecked(IVec3::new(x, y, z), &grass);
+                    chunk.set_block_unchecked(LocalPos::new(x, y, z), &grass);
                 }
             }
         }

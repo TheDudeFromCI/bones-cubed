@@ -68,6 +68,8 @@ impl AssetLoader for BlockAssetLoader {
             BlockModelLayout::Custom => todo!("Custom block shapes are not yet supported"),
         };
 
+        info!("Loaded block asset '{}' from {:?}", layout.name, ctx.path());
+
         Ok(Block::new(layout.name, shape))
     }
 

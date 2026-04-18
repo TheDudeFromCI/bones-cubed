@@ -12,5 +12,6 @@
         "*.tiles": "ron",
         "*.block": "ron",
         "*.actor": "ron",
-    }
+    },
+    "rust-analyzer.cargo.features": "all"
 }

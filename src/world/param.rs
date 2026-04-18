@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use crate::block::asset::Block;
 use crate::block::models::culling::Culling;
 use crate::world::chunk::{BChunk, BChunkCulling};
+use crate::world::pos::LocalPos;
 use crate::world::remesh::RenderedChunk;
 
 /// System parameter for safely accessing chunks and their related data for
@@ -73,21 +74,13 @@ impl<'w, 'a> BChunkReaderInner<'w, 'a> {
     }
 
     /// Gets the block type at the given position in the chunk.
-    ///
-    /// If the position is out of bounds, the coordinates will be wrapped
-    /// around. For example, a position of `(-1, 7, 17)` will be treated as
-    /// `(15, 7, 1)`.
-    pub fn get_block(&self, pos: IVec3) -> &Handle<Block> {
+    pub fn get_block(&self, pos: LocalPos) -> &Handle<Block> {
         self.chunk.get_block(pos)
     }
 
     /// Gets the culling value at the given position in the chunk, if the chunk
     /// has a [`BChunkCulling`] component.
-    ///
-    /// If the position is out of bounds, the coordinates will be wrapped
-    /// around. For example, a position of `(-1, 7, 17)` will be treated as
-    /// `(15, 7, 1)`.
-    pub fn get_culling(&self, pos: IVec3) -> Option<Culling> {
+    pub fn get_culling(&self, pos: LocalPos) -> Option<Culling> {
         self.culling.as_ref().map(|c| c.get_culling(pos))
     }
 
@@ -176,11 +169,7 @@ impl<'w, 'a> BChunkWriterInner<'w, 'a> {
     }
 
     /// Gets the block at the given position in the chunk.
-    ///
-    /// If the position is out of bounds, the coordinates will be wrapped
-    /// around. For example, a position of `(-1, 7, 17)` will be treated as
-    /// `(15, 7, 1)`.
-    pub fn get_block(&self, pos: IVec3) -> &Handle<Block> {
+    pub fn get_block(&self, pos: LocalPos) -> &Handle<Block> {
         self.chunk.get_block(pos)
     }
 
@@ -192,14 +181,10 @@ impl<'w, 'a> BChunkWriterInner<'w, 'a> {
     /// if it has a [`RenderedChunk`] component. (Chunks is not marked as dirty
     /// if the block at the given position is already of the given block type.)
     ///
-    /// If the position is out of bounds, the coordinates will be wrapped
-    /// around. For example, a position of `(-1, 7, 17)` will be treated as
-    /// `(15, 7, 1)`.
-    ///
     /// If the chunk contains blocks that are still loading, culling information
     /// will be marked as `UNKNOWN`, and calculated during the next chunk
     /// remesh.
-    pub fn set_block(&mut self, pos: IVec3, block: &Handle<Block>) {
+    pub fn set_block(&mut self, pos: LocalPos, block: &Handle<Block>) {
         if !self.chunk.set_block_unchecked(pos, block) {
             return;
         }
@@ -209,15 +194,34 @@ impl<'w, 'a> BChunkWriterInner<'w, 'a> {
         }
 
         if let Some(culling) = self.culling.as_mut() {
-            // TODO: This performs a total of 49 lookups in the block array.
+            // TODO: This performs up to 49 lookups in the block array.
             // Needs optimization.
+
             culling.recalculate_culling_at(&self.blocks, &self.chunk, pos);
-            culling.recalculate_culling_at(&self.blocks, &self.chunk, pos + IVec3::X);
-            culling.recalculate_culling_at(&self.blocks, &self.chunk, pos - IVec3::X);
-            culling.recalculate_culling_at(&self.blocks, &self.chunk, pos + IVec3::Y);
-            culling.recalculate_culling_at(&self.blocks, &self.chunk, pos - IVec3::Y);
-            culling.recalculate_culling_at(&self.blocks, &self.chunk, pos + IVec3::Z);
-            culling.recalculate_culling_at(&self.blocks, &self.chunk, pos - IVec3::Z);
+
+            if let Some(pos) = pos.try_add(IVec3::X) {
+                culling.recalculate_culling_at(&self.blocks, &self.chunk, pos);
+            }
+
+            if let Some(pos) = pos.try_add(-IVec3::X) {
+                culling.recalculate_culling_at(&self.blocks, &self.chunk, pos);
+            }
+
+            if let Some(pos) = pos.try_add(IVec3::Y) {
+                culling.recalculate_culling_at(&self.blocks, &self.chunk, pos);
+            }
+
+            if let Some(pos) = pos.try_add(-IVec3::Y) {
+                culling.recalculate_culling_at(&self.blocks, &self.chunk, pos);
+            }
+
+            if let Some(pos) = pos.try_add(IVec3::Z) {
+                culling.recalculate_culling_at(&self.blocks, &self.chunk, pos);
+            }
+
+            if let Some(pos) = pos.try_add(-IVec3::Z) {
+                culling.recalculate_culling_at(&self.blocks, &self.chunk, pos);
+            }
         }
     }
 
@@ -226,7 +230,7 @@ impl<'w, 'a> BChunkWriterInner<'w, 'a> {
     ///
     /// If there was a change in the culling value, this will also mark the
     /// chunk as dirty if it has a [`RenderedChunk`] component.
-    pub fn recalculate_culling_at(&mut self, pos: IVec3) {
+    pub fn recalculate_culling_at(&mut self, pos: LocalPos) {
         let Some(culling) = self.culling.as_mut() else {
             return;
         };

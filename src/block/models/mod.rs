@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use crate::block::models::cube::CubeProperties;
 use crate::block::models::culling::{Culling, FaceOcclusionShape};
 use crate::tileset::material::Tileset;
-use crate::utils::mesh::TerrainMesh;
+use crate::world::mesh::TerrainMesh;
 
 pub mod cube;
 pub mod culling;

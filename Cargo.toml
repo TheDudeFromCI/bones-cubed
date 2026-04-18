@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bevy = { version = "0.18", default-features = true }
+bevy = { version = "0.18", features = ["mesh_picking"] }
 bitflags = "2"
 ron = "0.12"
 serde = { version = "1", features = ["derive"] }
@@ -13,3 +13,12 @@ thiserror = "2"
 [dev-dependencies]
 bevy_panorbit_camera = "0.34"
 bevy = { version = "0.18", features = ["bevy_dev_tools"] }
+
+[features]
+# Enable the gizmos plugin, which provides visual debugging tools for the framework.
+# Specific tools must be enabled individually by setting the appropriate settings in the `B3GizmosSettings` resource.
+gizmos = []
+
+# Enable the gizmos plugin with all tools enabled by default.
+# Individual tool settings can still be overridden by setting the appropriate fields in the `B3GizmosSettings` resource.
+gizmos-all = ["gizmos"]
