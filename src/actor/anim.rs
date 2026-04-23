@@ -138,10 +138,6 @@ pub(super) fn prepare_anim_players(
             if let Ok(parent_child_of) = hierarchy.get(actor_id) {
                 actor_id = parent_child_of.parent();
             } else {
-                warn!(
-                    "AnimationPlayer {:?} is not a descendant of an Actor, skipping",
-                    entity
-                );
                 continue 'ev_loop;
             }
         }
@@ -239,15 +235,18 @@ pub(super) fn play_animation(
             continue;
         };
 
-        let Ok((mut player, mut transitions)) = players_query.get_mut(entity) else {
-            error!("Failed to get AnimationPlayer for {entity}");
-            continue;
-        };
-
-        transitions
-            .play(&mut player, anim_index, to_play.transition)
-            .set_repeat(to_play.repeat);
-
         aanim.playing = to_play.animation_name;
+
+        for anim_player_entity in &aanim.players {
+            let Ok((mut player, mut transitions)) = players_query.get_mut(*anim_player_entity)
+            else {
+                error!("Failed to get AnimationPlayer for {entity}");
+                continue;
+            };
+
+            transitions
+                .play(&mut player, anim_index, to_play.transition)
+                .set_repeat(to_play.repeat);
+        }
     }
 }
