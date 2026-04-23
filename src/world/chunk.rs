@@ -47,10 +47,6 @@ impl BChunk {
     }
 
     /// Gets the block at the given position in this chunk.
-    ///
-    /// If the position is out of bounds, the coordinates will be wrapped
-    /// around. For example, a position of `(-1, 7, 17)` will be treated as
-    /// `(15, 7, 1)`.
     pub fn get_block(&self, pos: LocalPos) -> &Handle<Block> {
         let index = index(pos);
         &self.blocks[index]
@@ -61,16 +57,12 @@ impl BChunk {
     /// Returns `true` if the block was changed, or `false` if the block was
     /// already of the given block type.
     ///
-    /// If the position is out of bounds, the coordinates will be wrapped
-    /// around. For example, a position of `(-1, 7, 17)` will be treated as
-    /// `(15, 7, 1)`.
-    ///
     /// **Note:** This method *does not* update the culling information for the
     /// block. If you need to update the culling information as well, use the
     /// [`BChunkEditor`] system param to set the block instead, which will also
-    /// mark the chunk as dirty for remeshing. (Note that culling information is
-    /// recalculated automatically during the first remesh, meaning it is safe
-    /// to call this method on a chunk before spawning it for the first time.)
+    /// mark the chunk as dirty for remeshing. However, as culling information
+    /// is recalculated automatically during the first remesh, it is safe to
+    /// call this method on a chunk before spawning it for the first time.
     pub fn set_block_unchecked(&mut self, pos: LocalPos, block: &Handle<Block>) -> bool {
         let index = index(pos);
 
@@ -114,10 +106,6 @@ impl BChunkCulling {
 
     /// Gets the culling information for the block at the given position in this
     /// chunk.
-    ///
-    /// If the position is out of bounds, the coordinates will be wrapped
-    /// around. For example, a position of `(-1, 7, 17)` will be treated as
-    /// `(15, 7, 1)`.
     pub fn get_culling(&self, pos: LocalPos) -> Culling {
         let index = index(pos);
         self.blocks[index]
@@ -128,10 +116,6 @@ impl BChunkCulling {
     ///
     /// Returns `true` if the culling value was changed, or `false` if the new
     /// culling value matches the existing culling value.
-    ///
-    /// If the position is out of bounds, the coordinates will be wrapped
-    /// around. For example, a position of `(-1, 7, 17)` will be treated as
-    /// `(15, 7, 1)`.
     ///
     /// This method does not account for the block stored at the given position,
     /// which may lead to odd rendering if used incorrectly. It is recommended
